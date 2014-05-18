@@ -59,7 +59,7 @@ class UnrealTournament(callbacks.Plugin):
       irc.queueMsg(ircmsgs.privmsg("#evocatus", 'poll'))
       log.debug("poll")
       result = self.Query("players")
-      irc.queueMsg(ircmsgs.privmsg("#evocatus", 'queried'))
+      irc.queueMsg(ircmsgs.privmsg("#evocatus", 'queried: ' + result))
       log.debug("queried")
       players = {}
       for k, v in result.items():
