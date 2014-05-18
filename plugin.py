@@ -55,6 +55,7 @@ class UnrealTournament(callbacks.Plugin):
   
   def start(self, irc, msg, args):
     def poll():
+      irc.queueMsg(ircmsgs.privmsg(self.channel, 'Polling...'))
       result = self.Query("players")
       players = {}
       for k, v in result.items():
