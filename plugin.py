@@ -37,6 +37,7 @@ import supybot.ircmsgs as ircmsgs
 import supybot.schedule as schedule
 import socket
 import supybot.log as log
+import sys
 
 class UnrealTournament(callbacks.Plugin):
   """Add the help for "@plugin help UnrealTournament" here
@@ -58,24 +59,28 @@ class UnrealTournament(callbacks.Plugin):
   
   def start(self, irc, msg, args):
     def poll():
-      log.info("poll")
-      result = self.Query("players")
-      log.info("queried")
-      players = {}
-      for k, v in result.items():
-        k, p = k.split('_')
-        if p not in players:
-          players[p]={}
-        players[p][k]=v
-      playerNames = []
-      log.info("splitting names")
-      irc.queueMsg(ircmsgs.privmsg("#evocatus", 'splitting names'))
-      for n, p in players.items():
-        playerNames.append(p["player"])
-      irc.queueMsg(ircmsgs.privmsg("#evocatus", 'UT: {} players are now on the server ({})'.format(len(self.players), ",".join(playerNames))))
-      if len(self.players) == 0 and len(players) > 0:
-        self.players = players
-        #irc.queueMsg(ircmsgs.privmsg(self.channel, 'UT: {} players are now on the server ({})'.format(len(self.players), ",".join(playerNames))))
+      try:
+        log.info("poll")
+        result = self.Query("players")
+        log.info("queried")
+        players = {}
+        for k, v in result.items():
+          k, p = k.split('_')
+          if p not in players:
+            players[p]={}
+          players[p][k]=v
+        playerNames = []
+        log.info("splitting names")
+        irc.queueMsg(ircmsgs.privmsg("#evocatus", 'splitting names'))
+        for n, p in players.items():
+          playerNames.append(p["player"])
+        irc.queueMsg(ircmsgs.privmsg("#evocatus", 'UT: {} players are now on the server ({})'.format(len(self.players), ",".join(playerNames))))
+        if len(self.players) == 0 and len(players) > 0:
+          self.players = players
+          #irc.queueMsg(ircmsgs.privmsg(self.channel, 'UT: {} players are now on the server ({})'.format(len(self.players), ",".join(playerNames))))
+      except:
+        e = sys.exc_info()[0]
+        log.error(e)
     try:
       schedule.addPeriodicEvent(poll, self.checkTime, 'utPoll', False)
     except AssertionError:
