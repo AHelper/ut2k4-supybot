@@ -33,12 +33,58 @@ from supybot.commands import *
 import supybot.plugins as plugins
 import supybot.ircutils as ircutils
 import supybot.callbacks as callbacks
+import supybot.ircmsgs as ircmsgs
+import supybot.schedule as schedule
 import socket
 
 class UnrealTournament(callbacks.Plugin):
   """Add the help for "@plugin help UnrealTournament" here
   This should describe *how* to use this plugin."""
-  pass
+  def __init__(self, irc):
+    self.__parent = super(UnrealTournament, self)
+    self.__parent.__init__(irc)
+    self.checkTime = 60
+    self.addr = "ut.cemetech.net"
+    self.channel = "#cemetech-ut"
+    
+  def Query(self, k, v=""):
+    conn = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    conn.sendto("\\{}\\{}".format(k, v), (self.addr, 7787))
+    recv, addr = conn.recvfrom(1024)
+    return dict((recv[1::2][i],recv[2::2][i]) for i in range(0,len(recv[1::2])))
+  
+  def start(self, irc, msg, args):
+    def poll():
+      result = self.Query("players")
+      players = {}
+      for k, v in result.items():
+        k, p = k.split('_')
+        if p not in players:
+          players[p]={}
+        players[p][k]=v
+      playerNames = []
+      for n, p in players.items():
+        playerNames.append(p["player"])
+      if len(self.players) == 0 and len(players) > 0:
+        self.players = players
+        irc.queueMsg(ircmsgs.privmsg(self.channel, 'UT: {} players are now on the server ({})'.format(len(self.players), ",".join(playerNames))))
+    try:
+      schedule.addPeriodicEvent(poll, self.checkTime, 'utPoll', False)
+    except AssertionError:
+      irc.reply('Already polling UT server')
+    else:
+      irc.reply("Polling '{}' every {} seconds.".format(self.addr, self.checkTime))
+  start = wrap(start)
+  
+  def stop(self, irc, msg, args):
+    try:
+      schedule.removePeriodicEvent('utPoll')
+    except KeyError:
+      irc.reply('UT poll was already stopped')
+    else:
+      irc.reply('Polling stopped.')
+  stop = wrap(stop)
+  
   def ut(self, irc, msg, args):
     conn = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     conn.sendto("\\echo\\UT!", ("204.11.33.157", 7787))
