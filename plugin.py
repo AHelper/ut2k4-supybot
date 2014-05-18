@@ -51,7 +51,8 @@ class UnrealTournament(callbacks.Plugin):
   def Query(self, k, v=""):
     conn = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     conn.sendto("\\{}\\{}".format(k, v), (self.addr, 7787))
-    recv, addr = conn.recvfrom(1024)
+    recv, addr = conn.recvfrom(500000)
+    recv = recv.split('\\')
     conn.close()
     return dict((recv[1::2][i],recv[2::2][i]) for i in range(0,len(recv[1::2])))
   
