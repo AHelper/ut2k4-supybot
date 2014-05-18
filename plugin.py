@@ -60,7 +60,7 @@ class UnrealTournament(callbacks.Plugin):
     def poll():
       log.info("poll")
       result = self.Query("players")
-      log.info("queried: " + result)
+      log.info("queried")
       players = {}
       for k, v in result.items():
         k, p = k.split('_')
