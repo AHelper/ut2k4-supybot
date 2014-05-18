@@ -66,7 +66,7 @@ class UnrealTournament(callbacks.Plugin):
         players = {}
         log.info("a")
         for k, v in result.items():
-          log.info("b")
+          log.info("b: " + k + "," + v)
           k, p = k.split('_')
           if p not in players:
             log.info("c")
