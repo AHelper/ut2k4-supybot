@@ -50,12 +50,26 @@ class UnrealTournament(callbacks.Plugin):
     self.channel = "#cemetech-ut"
     
   def Query(self, k, v=""):
+    data = {}
+    id = "0"
     conn = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     conn.sendto("\\{}\\{}".format(k, v), (self.addr, 7787))
-    recv, addr = conn.recvfrom(500000)
-    recv = recv.split('\\')
+    while "final" not in data:
+      recv, addr = conn.recvfrom(500000)
+      if recv == None or len(recv) == 0:
+        return {}
+      print recv
+      recv = recv.split('\\')
+      d = dict((recv[1::2][i],recv[2::2][i]) for i in range(0,len(recv[1::2])))
+      if d["queryid"] <= id:
+        return {}
+      else:
+        for k, v in d.items():
+          if k != "queryid":
+            data[k] = v
+    del data["final"]
     conn.close()
-    return dict((recv[1::2][i],recv[2::2][i]) for i in range(0,len(recv[1::2])))
+    return data
   
   def start(self, irc, msg, args):
     def poll():
