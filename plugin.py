@@ -64,11 +64,15 @@ class UnrealTournament(callbacks.Plugin):
         result = self.Query("players")
         log.info("queried")
         players = {}
+        log.info("a")
         for k, v in result.items():
+          log.info("b")
           k, p = k.split('_')
           if p not in players:
+            log.info("c")
             players[p]={}
           players[p][k]=v
+          log.info("d")
         playerNames = []
         log.info("splitting names")
         irc.queueMsg(ircmsgs.privmsg("#evocatus", 'splitting names'))
