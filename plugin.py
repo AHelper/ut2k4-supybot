@@ -36,6 +36,7 @@ import supybot.callbacks as callbacks
 import supybot.ircmsgs as ircmsgs
 import supybot.schedule as schedule
 import socket
+import supybot.log.debug as debug
 
 class UnrealTournament(callbacks.Plugin):
   """Add the help for "@plugin help UnrealTournament" here
@@ -55,7 +56,9 @@ class UnrealTournament(callbacks.Plugin):
   
   def start(self, irc, msg, args):
     def poll():
+      debug("poll")
       result = self.Query("players")
+      debug("queried")
       players = {}
       for k, v in result.items():
         k, p = k.split('_')
@@ -63,9 +66,10 @@ class UnrealTournament(callbacks.Plugin):
           players[p]={}
         players[p][k]=v
       playerNames = []
-      irc.queueMsg(ircmsgs.privmsg("#evocatus", 'UT: {} players are now on the server ({})'.format(len(self.players), ",".join(playerNames))))
+      debug("splitting names")
       for n, p in players.items():
         playerNames.append(p["player"])
+      irc.queueMsg(ircmsgs.privmsg("#evocatus", 'UT: {} players are now on the server ({})'.format(len(self.players), ",".join(playerNames))))
       if len(self.players) == 0 and len(players) > 0:
         self.players = players
         #irc.queueMsg(ircmsgs.privmsg(self.channel, 'UT: {} players are now on the server ({})'.format(len(self.players), ",".join(playerNames))))
