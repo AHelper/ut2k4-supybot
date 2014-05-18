@@ -58,10 +58,9 @@ class UnrealTournament(callbacks.Plugin):
   
   def start(self, irc, msg, args):
     def poll():
-      log.warning("poll")
+      log.info("poll")
       result = self.Query("players")
-      irc.queueMsg(ircmsgs.privmsg("#evocatus", 'queried: {}'.format(len(result))))
-      log.info("queried")
+      log.info("queried: " + result)
       players = {}
       for k, v in result.items():
         k, p = k.split('_')
@@ -69,8 +68,8 @@ class UnrealTournament(callbacks.Plugin):
           players[p]={}
         players[p][k]=v
       playerNames = []
+      log.info("splitting names")
       irc.queueMsg(ircmsgs.privmsg("#evocatus", 'splitting names'))
-      log.debug("splitting names")
       for n, p in players.items():
         playerNames.append(p["player"])
       irc.queueMsg(ircmsgs.privmsg("#evocatus", 'UT: {} players are now on the server ({})'.format(len(self.players), ",".join(playerNames))))
