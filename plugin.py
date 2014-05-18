@@ -43,7 +43,7 @@ class UnrealTournament(callbacks.Plugin):
   def __init__(self, irc):
     self.__parent = super(UnrealTournament, self)
     self.__parent.__init__(irc)
-    self.checkTime = 60
+    self.checkTime = 10
     self.addr = "204.11.33.157"
     self.channel = "#cemetech-ut"
     
@@ -63,7 +63,7 @@ class UnrealTournament(callbacks.Plugin):
           players[p]={}
         players[p][k]=v
       playerNames = []
-      irc.queueMsg(ircmsgs.privmsg("ElderBlub", 'UT: {} players are now on the server ({})'.format(len(self.players), ",".join(playerNames))))
+      irc.queueMsg(ircmsgs.privmsg("#evocatus", 'UT: {} players are now on the server ({})'.format(len(self.players), ",".join(playerNames))))
       for n, p in players.items():
         playerNames.append(p["player"])
       if len(self.players) == 0 and len(players) > 0:
