@@ -84,7 +84,7 @@ class UnrealTournament(callbacks.Plugin):
           #irc.queueMsg(ircmsgs.privmsg(self.channel, 'UT: {} players are now on the server ({})'.format(len(self.players), ",".join(playerNames))))
       except:
         e = sys.exc_info()[0]
-        log.error(e)
+        log.info("Exception: {}".format(e))
     try:
       schedule.addPeriodicEvent(poll, self.checkTime, 'utPoll', False)
     except AssertionError:
