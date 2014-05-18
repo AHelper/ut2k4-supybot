@@ -52,6 +52,7 @@ class UnrealTournament(callbacks.Plugin):
     conn = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     conn.sendto("\\{}\\{}".format(k, v), (self.addr, 7787))
     recv, addr = conn.recvfrom(1024)
+    conn.close()
     return dict((recv[1::2][i],recv[2::2][i]) for i in range(0,len(recv[1::2])))
   
   def start(self, irc, msg, args):
