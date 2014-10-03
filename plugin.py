@@ -38,6 +38,8 @@ import supybot.schedule as schedule
 import socket
 import supybot.log as log
 import sys
+import random
+import struct
 
 class UnrealTournament(callbacks.Plugin):
   """Add the help for "@plugin help UnrealTournament" here
@@ -46,59 +48,175 @@ class UnrealTournament(callbacks.Plugin):
     self.__parent = super(UnrealTournament, self)
     self.__parent.__init__(irc)
     self.checkTime = 10
-    self.addr = "204.11.33.157"
+    self.addr = "198.27.66.25"
     self.channel = "#cemetech-ut"
+    self.players = []
+    self.scores = {}
+    self.mapName = ""
+    self.info = {}
+    self.partdelay = 0
+    self.utdelay = 0
     
-  def Query(self, k, v=""):
-    data = {}
-    id = "0"
+  #def Query(self, k, v=""):
+    #data = {}
+    #id = "0"
+    #conn = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    #conn.sendto("\\{}\\{}".format(k, v), (self.addr, 7787))
+    #while "final" not in data:
+      #recv, addr = conn.recvfrom(500000)
+      #if recv == None or len(recv) == 0:
+        #return {}
+      #print recv
+      #recv = recv.split('\\')
+      #d = dict((recv[1::2][i],recv[2::2][i]) for i in range(0,len(recv[1::2])))
+      #if d["queryid"] <= id:
+        #return {}
+      #else:
+        #for k, v in d.items():
+          #if k != "queryid":
+            #data[k] = v
+    #del data["final"]
+    #conn.close()
+    #return data
+  def Query(self, queryId):
     conn = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    conn.sendto("\\{}\\{}".format(k, v), (self.addr, 7787))
-    while "final" not in data:
-      recv, addr = conn.recvfrom(500000)
-      if recv == None or len(recv) == 0:
-        return {}
-      print recv
-      recv = recv.split('\\')
-      d = dict((recv[1::2][i],recv[2::2][i]) for i in range(0,len(recv[1::2])))
-      if d["queryid"] <= id:
-        return {}
-      else:
-        for k, v in d.items():
-          if k != "queryid":
-            data[k] = v
-    del data["final"]
-    conn.close()
-    return data
+    conn.sendto(struct.pack("<IB",0x80, queryId), (self.addr, 7778))
+    recv, addr = conn.recvfrom(500000)
+    if recv[0:5] == struct.pack("<IB",0x80, queryId):
+      log.info("Query response")
+      return recv[5:]
+    else:
+      log.info("Invalid response header")
+    return ""
+  
+  def ParseString(self, data):
+    length = struct.unpack("<B", data[0])
+    return data[1:length[0]], data[1+length[0]:]
+  
+  def Flush(self):
+    conn = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    conn.settimeout(0.5)
+    while 1:
+      try:
+        recv, addr = conn.recvfrom(500000)
+      except:
+        break
+  def Poll(self):
+    self.Flush()
+    log.info("poll")
+    result = self.Query(0)
+    response = {}
+    t = struct.unpack("<IBII",result[0:4*3+1])
+    response['serverId'] = t[0]
+    response['serverIp'] = ''
+    response['gamePort'] = t[2]
+    response['queryPort'] = t[3]
+    result = result[4*3+1:]
+    response['serverName'], result = self.ParseString(result)
+    response['mapName'], result = self.ParseString(result)
+    response['gameType'], result = self.ParseString(result)
+    t = struct.unpack("<IIII",result[:4*4])
+    response['currentPlayers'] = t[0]
+    response['maxPlayers'] = t[1]
+    response['ping'] = t[2]
+    response['serverFlags'] = t[3]
+    result = result[4*4:]
+    response['skillLevel'], result = self.ParseString(result)
+    log.info(str(response))
+    players = []
+    scores = {}
+    joined = []
+    parted = []
+    if response['currentPlayers'] > 0:
+      result = self.Query(2)
+      while len(result) != 0:
+        t = struct.unpack("<I", result[0:4])
+        result = result[4:]
+        name, result = self.ParseString(result)
+        if name != "Red Team" and name != "Blue Team":
+          players.append(name)
+        t = struct.unpack("<IiI", result[0:12])
+        scores[name] = t[1]
+        result = result[12:]
+    for p in self.players:
+      if p not in players:
+        parted.append(p)
+    for p in players:
+      if p not in self.players:
+        joined.append(p)
+    log.info(str(scores))
+    
+    if len(parted) > 0 and self.info.has_key('mapName') and self.info.has_key('gameType') and (self.info['mapName'] != response['mapName'] or self.info['gameType'] != response['gameType']):
+      self.partdelay = 3
+    if self.partdelay > 0:
+      players.extend(parted)
+      parted = []
+      self.partdelay = self.partdelay-1
+      
+    if self.info == {} and self.players == []:
+      self.info = response
+      self.players = players
+      joined = []
+    return response, players, scores, joined, parted
   
   def start(self, irc, msg, args):
     def poll():
       try:
-        log.info("poll")
-        result = self.Query("players")
-        log.info("queried")
-        players = {}
-        log.info("a")
-        for k, v in result.items():
-          log.info("b: " + k + "," + v)
-          k, p = k.split('_')
-          if p not in players:
-            log.info("c")
-            players[p]={}
-          players[p][k]=v
-          log.info("d")
-        playerNames = []
-        log.info("splitting names")
-        irc.queueMsg(ircmsgs.privmsg("#evocatus", 'splitting names'))
-        for n, p in players.items():
-          playerNames.append(p["player"])
-        irc.queueMsg(ircmsgs.privmsg("#evocatus", 'UT: {} players are now on the server ({})'.format(len(self.players), ",".join(playerNames))))
+        response, players, scores, joined, parted = self.Poll()
+        # Generate joins
+        msg = ""
+        if len(joined) > 0:
+          msg = ", ".join(joined) + " joined"
+        # Generate parts
+        if len(parted) > 0:
+          if len(msg) > 0:
+            msg = msg + " and "
+          msg = msg + ", ".join(parted) + " left"
+        # Generate announcement IFF len(self.players) == 0 && len(players) != 0
+        # Print
         if len(self.players) == 0 and len(players) > 0:
-          self.players = players
-          #irc.queueMsg(ircmsgs.privmsg(self.channel, 'UT: {} players are now on the server ({})'.format(len(self.players), ",".join(playerNames))))
-      except:
-        e = sys.exc_info()[0]
-        log.info("Exception: {}".format(e))
+          if self.utdelay == 0:
+	    irc.queueMsg(ircmsgs.privmsg(self.channel, "%ut"))
+          irc.queueMsg(ircmsgs.privmsg(self.channel, msg + " playing [{}] {}".format(response['gameType'], response['mapName'])))
+        elif len(msg) > 0:
+          irc.queueMsg(ircmsgs.privmsg(self.channel, msg))
+          # Print map change
+          #if len(players) > 0: # or len(self.players) > 0:
+        if not self.info.has_key('mapName') or not self.info.has_key('gameType') or self.info['mapName'] != response['mapName'] or self.info['gameType'] != response['gameType']:
+          if self.scores.has_key("Blue Team") and self.scores.has_key("Red Team"):
+            irc.queueMsg(ircmsgs.privmsg(self.channel, 'UT: {} has won! (R:{} B:{})'.format(("Red team" if self.scores['Red Team'] > self.scores['Blue Team'] else "Blue team") if self.scores.has_key("Red Team") and self.scores.has_key("Blue Team") else "Nobody", (self.scores["Red Team"] if self.scores.has_key("Red Team") else 0), (self.scores["Blue Team"] if self.scores.has_key("Blue Team") else 0))))
+	if len(players) > 0:
+	  self.utdelay = 6*30
+	elif self.utdelay > 0:
+	  self.utdelay = self.utdelay - 1
+	print "{} :: {}".format(self.utdelay, self.partdelay)
+        self.players = players
+        self.info = response
+        self.scores = scores
+        # log.info("queried")
+        #players = {}
+        #log.info("a")
+        #for k, v in result.items():
+          #log.info("b: " + k + "," + v)
+          #k, p = k.split('_')
+          #if p not in players:
+            #log.info("c")
+            #players[p]={}
+          #players[p][k]=v
+          #log.info("d")
+        #playerNames = []
+        #log.info("splitting names")
+        #irc.queueMsg(ircmsgs.privmsg("#evocatus", 'splitting names'))
+        #for n, p in players.items():
+          #playerNames.append(p["player"])
+        #irc.queueMsg(ircmsgs.privmsg("#evocatus", 'UT: {} players are now on the server ({})'.format(len(self.players), ",".join(playerNames))))
+        #if len(self.players) == 0 and len(players) > 0:
+          #self.players = players
+          ##irc.queueMsg(ircmsgs.privmsg(self.channel, 'UT: {} players are now on the server ({})'.format(len(self.players), ",".join(playerNames))))
+      except Exception,e:
+        exc_type, exc_obj, exc_tb = sys.exc_info()
+        log.info("Exception: {} on line {}".format(exc_type, exc_tb.tb_lineno))
+        print(str(e))
     try:
       schedule.addPeriodicEvent(poll, self.checkTime, 'utPoll', False)
     except AssertionError:
@@ -117,10 +235,11 @@ class UnrealTournament(callbacks.Plugin):
   stop = wrap(stop)
   
   def ut(self, irc, msg, args):
-    conn = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    conn.sendto("\\echo\\UT!", ("204.11.33.157", 7787))
-    recv, addr = conn.recvfrom(1024)
-    irc.reply("UDP ({}): {}".format(addr,recv))
+    response, players, scores, joined, parted = self.Poll()
+    if len(players) > 0:  
+      irc.queueMsg(ircmsgs.privmsg(self.channel, 'UT: {}/{} players are now playing [{}] {}  (R:{} B:{}) ({})'.format(len(players), response['maxPlayers'], response['gameType'], response['mapName'], (scores["Red Team"] if scores.has_key("Red Team") else 0), (scores["Blue Team"] if scores.has_key("Blue Team") else 0), ",".join(players))))
+    else:
+      irc.queueMsg(ircmsgs.privmsg(self.channel, random.choice(['This is unreal, nobody is playing!', 'Nobody\'s home', 'Nobody is UT\'ing right now', 'Server is devoid of any and all players', 'Fewer players than /dev/zero'])))
   ut = wrap(ut)
 
 Class = UnrealTournament
