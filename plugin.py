@@ -236,15 +236,16 @@ class Server:
     result = self.Query(0)
     response = {}
     log.info(lineno())
-    (response['serverId'], x, response['gamePort'], response['queryPort']) = self.ServerInfo1.unpack_from(result)
+    response['serverId'], x, response['gamePort'], response['queryPort'] = self.ServerInfo1.unpack_from(result)
     response['serverIp'] = ''
+    log.info(lineno())
     del result[:self.ServerInfo1.size]
     log.info(lineno())
     response['serverName'] = self.ParseString(result)
     response['mapName'] = self.ParseString(result)
     response['gameType'] = self.ParseString(result)
     log.info(lineno())
-    (response['currentPlayers'], response['maxPlayers'], response['ping'], response['serverFlags']) = self.ServerInfo2.unpack_from(result)
+    response['currentPlayers'], response['maxPlayers'], response['ping'], response['serverFlags'] = self.ServerInfo2.unpack_from(result)
     del result[:self.ServerInfo2.size]
     log.info(lineno())
     response['skillLevel'] = self.ParseString(result)
