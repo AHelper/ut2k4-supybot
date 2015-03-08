@@ -69,7 +69,7 @@ class Server:
   def __del__(self):
     self.stopPoll()
   def __str__(self):
-    return self.addr + ":" + self.port
+    return self.addr + ":" + str(self.port)
   def poll(self):
     log.info("Polling for " + str(self) + " on channels " + str(self.channels))
     pass
