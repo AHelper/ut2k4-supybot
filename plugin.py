@@ -266,8 +266,7 @@ class Server:
         if name != "Red Team" and name != "Blue Team":
           players.append(name)
         
-        (x, scores[name], x) = self.ServerInfo4.unpack_from(result)
-        scores[name] = t[1]
+        x, scores[name], x = self.ServerInfo4.unpack_from(result)
         result = result[self.ServerInfo4.size:]
     for p in self.players:
       if p not in players:
