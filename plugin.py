@@ -79,7 +79,7 @@ IRCLE_COLORS = [
   {'color':[0x80, 0x00, 0x40],'code':'\x03K'}]
 
 class Server:
-  DEFAULT_PORT = 7787
+  DEFAULT_PORT = 7778
   ServerInfo1 = struct.Struct("<IBII")
   ServerInfo2 = struct.Struct("<IIII")
   ServerInfo3 = struct.Struct("<I")
@@ -91,7 +91,7 @@ class Server:
     parts = hostname.split(':')
     if len(parts) == 2:
       self.addr = parts[0]
-      self.port = parts[1]
+      self.port = int(parts[1])
       self.valid = True
     elif len(parts) == 1:
       self.addr = parts[0]
