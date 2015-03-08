@@ -137,7 +137,7 @@ class Server:
         c = itr.next()
         if c == '\x1b':
           # RGB value follows
-          rgb = [itr.next(), itr.next(), itr.next()]
+          rgb = [int(x) for x in [itr.next(), itr.next(), itr.next()]]
           ret += self.rgbToIRCColorCode(rgb, channel)
         else:
           ret += c
