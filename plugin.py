@@ -199,6 +199,9 @@ class Server:
     if not self.valid:
       log.error("Querying on an invalid server instance!")
     else:
+      log.info(lineno())
+      log.info(str((self.addr, self.port)))
+      self.conn = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
       self.conn.sendto(struct.pack("<IB",0x80, queryId), (self.addr, self.port))
       log.info(lineno())
       recv, addr = self.conn.recvfrom(500000)
