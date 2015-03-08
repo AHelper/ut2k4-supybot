@@ -74,11 +74,13 @@ class Server:
     log.info("Polling for " + str(self) + " on channels " + str(self.channels))
     pass
   def startPoll(self):
+    self.conn = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     schedule.addPeriodicEvent(lambda: self.poll(), self.checkTime, 'utPoll:' + str(self), False)
     self.polling = True
   def stopPoll(self):
     schedule.removePeriodicEvent('utPoll:' + str(self))
     self.polling = False
+    self.conn.close()
   def addChannel(self, channelName):
     if not self.polling:
       self.startPoll()
@@ -89,6 +91,89 @@ class Server:
       self.channels.remove(channelName)
     if len(self.channels) == 0:
       self.stopPoll()
+  def Query(self, queryId):
+    if not self.valid:
+      log.error("Querying on an invalid server instance!")
+    else:
+      self.conn.sendto(struct.pack("<IB",0x80, queryId), (self.addr, self.port))
+      recv, addr = self.conn.recvfrom(500000)
+      if recv[0:5] == struct.pack("<IB",0x80, queryId):
+        log.info("Query response")
+        return recv[5:]
+      else:
+        log.info("Invalid response header")
+    return ""
+
+  def ParseString(self, data):
+    length = struct.unpack("<B", data[0])
+    return data[1:length[0]], data[1+length[0]:]
+
+  def Flush(self):
+    t = self.conn.gettimeout()
+    self.conn.settimeout(0.5)
+    while 1:
+      try:
+        recv, addr = self.conn.recvfrom(500000)
+      except:
+        break
+    self.conn.settimeout(t)
+  def Poll(self):
+    self.Flush()
+    log.info("poll")
+    result = self.Query(0)
+    response = {}
+    t = struct.unpack("<IBII",result[0:4*3+1])
+    response['serverId'] = t[0]
+    response['serverIp'] = ''
+    response['gamePort'] = t[2]
+    response['queryPort'] = t[3]
+    result = result[4*3+1:]
+    response['serverName'], result = self.ParseString(result)
+    response['mapName'], result = self.ParseString(result)
+    response['gameType'], result = self.ParseString(result)
+    t = struct.unpack("<IIII",result[:4*4])
+    response['currentPlayers'] = t[0]
+    response['maxPlayers'] = t[1]
+    response['ping'] = t[2]
+    response['serverFlags'] = t[3]
+    result = result[4*4:]
+    response['skillLevel'], result = self.ParseString(result)
+    log.info(str(response))
+    players = []
+    scores = {}
+    joined = []
+    parted = []
+    if response['currentPlayers'] > 0:
+      result = self.Query(2)
+      while len(result) != 0:
+        t = struct.unpack("<I", result[0:4])
+        result = result[4:]
+        name, result = self.ParseString(result)
+        if name != "Red Team" and name != "Blue Team":
+          players.append(name)
+        t = struct.unpack("<IiI", result[0:12])
+        scores[name] = t[1]
+        result = result[12:]
+    for p in self.players:
+      if p not in players:
+        parted.append(p)
+    for p in players:
+      if p not in self.players:
+        joined.append(p)
+    log.info(str(scores))
+    
+    if len(parted) > 0 and self.info.has_key('mapName') and self.info.has_key('gameType') and (self.info['mapName'] != response['mapName'] or self.info['gameType'] != response['gameType']):
+      self.partdelay = 3
+    if self.partdelay > 0:
+      players.extend(parted)
+      parted = []
+      self.partdelay = self.partdelay-1
+      
+    if self.info == {} and self.players == []:
+      self.info = response
+      self.players = players
+      joined = []
+    return response, players, scores, joined, parted
 
 class UnrealTournament(callbacks.Plugin):
   """Add the help for "@plugin help UnrealTournament" here
