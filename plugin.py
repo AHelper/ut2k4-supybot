@@ -44,6 +44,7 @@ import struct
 import StringIO
 import traceback
 import inspect
+import numpy
 
 def lineno():
   """Returns the current line number in our program."""
@@ -114,6 +115,8 @@ class Server:
   def __str__(self):
     return self.addr + ":" + str(self.port)
   def colorDistance(self, rgb1, rgb2):
+    rgb1 = numpy.array(rgb1)
+    rgb2 = numpy.array(rgb2)
     # From https://stackoverflow.com/a/14097641
     rm = 0.5*(rgb1[0]+rgb2[0])
     d = sum((2+rm,4,3-rm)*(rgb1-rgb2)**2)**0.5
