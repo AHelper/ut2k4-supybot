@@ -196,6 +196,8 @@ class Server:
     if len(self.channels) == 0:
       self.stopPoll()
   def Query(self, queryId):
+    log.info("TEST")
+    log.info(lineno())
     if not self.valid:
       log.error("Querying on an invalid server instance!")
     else:
@@ -230,7 +232,7 @@ class Server:
     self.conn.settimeout(t)
   def Poll(self):
     self.Flush()
-    log.info("poll")
+    log.info("Poll")
     result = self.Query(0)
     response = {}
     log.info(lineno())
