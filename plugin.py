@@ -241,14 +241,14 @@ class Server:
     log.info(lineno())
     log.info(str(len(result)))
     log.info(str(self.ServerInfo1.size))
-    del result[:self.ServerInfo1.size]
+    result = result[self.ServerInfo1.size:]
     log.info(lineno())
     response['serverName'] = self.ParseString(result)
     response['mapName'] = self.ParseString(result)
     response['gameType'] = self.ParseString(result)
     log.info(lineno())
     response['currentPlayers'], response['maxPlayers'], response['ping'], response['serverFlags'] = self.ServerInfo2.unpack_from(result)
-    del result[:self.ServerInfo2.size]
+    result = result[self.ServerInfo2.size:]
     log.info(lineno())
     response['skillLevel'] = self.ParseString(result)
     log.info(lineno())
@@ -262,7 +262,7 @@ class Server:
       result = self.Query(2)
       while len(result) != 0:
         t = self.ServerInfo3.unpack_from(result)
-        del result[:self.ServerInfo3.size]
+        result = result[self.ServerInfo3.size:]
         
         name = self.ParseString(result)
         if name != "Red Team" and name != "Blue Team":
@@ -270,7 +270,7 @@ class Server:
         
         (x, scores[name], x) = self.ServerInfo4.unpack_from(result)
         scores[name] = t[1]
-        del result[:self.ServerInfo4.size]
+        result = result[self.ServerInfo4.size:]
     for p in self.players:
       if p not in players:
         parted.append(p)
