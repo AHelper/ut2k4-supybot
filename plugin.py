@@ -42,6 +42,36 @@ import sys
 import random
 import struct
 
+IRCLE_COLORS = [
+  {'color':[0xFF, 0xFF, 0xFF],'code':'\x030'},
+  {'color':[0x00, 0x00, 0x00],'code':'\x031'},
+  {'color':[0xFF, 0x00, 0x00],'code':'\x032'},
+  {'color':[0xFF, 0x80, 0x00],'code':'\x033'},
+  {'color':[0xFF, 0xFF, 0x00],'code':'\x034'},
+  {'color':[0x80, 0xFF, 0x00],'code':'\x035'},
+  {'color':[0x00, 0xFF, 0x00],'code':'\x036'},
+  {'color':[0x00, 0xFF, 0x80],'code':'\x037'},
+  {'color':[0x00, 0xFF, 0xFF],'code':'\x038'},
+  {'color':[0x00, 0x80, 0xFF],'code':'\x039'},
+  {'color':[0x00, 0x00, 0xFF],'code':'\x03:'},
+  {'color':[0x80, 0x00, 0xFF],'code':'\x03;'},
+  {'color':[0xFF, 0x00, 0xFF],'code':'\x03<'},
+  {'color':[0xFF, 0x00, 0x80],'code':'\x03='},
+  {'color':[0xC0, 0xC0, 0xC0],'code':'\x03>'},
+  {'color':[0x40, 0x40, 0x40],'code':'\x03?'},
+  {'color':[0x80, 0x00, 0x00],'code':'\x03@'},
+  {'color':[0x80, 0x40, 0x00],'code':'\x03A'},
+  {'color':[0x80, 0x80, 0x00],'code':'\x03B'},
+  {'color':[0x40, 0x80, 0x00],'code':'\x03C'},
+  {'color':[0x00, 0x80, 0x00],'code':'\x03D'},
+  {'color':[0x00, 0x80, 0x40],'code':'\x03E'},
+  {'color':[0x00, 0x80, 0x80],'code':'\x03F'},
+  {'color':[0x00, 0x40, 0x80],'code':'\x03G'},
+  {'color':[0x00, 0x00, 0x80],'code':'\x03H'},
+  {'color':[0x40, 0x00, 0x80],'code':'\x03I'},
+  {'color':[0x80, 0x00, 0x80],'code':'\x03J'},
+  {'color':[0x80, 0x00, 0x40],'code':'\x03K'}]
+
 class Server:
   DEFAULT_PORT = 7787
   ServerInfo1 = struct.Struct("<IBII")
@@ -49,7 +79,9 @@ class Server:
   ServerInfo3 = struct.Struct("<I")
   ServerInfo4 = struct.Struct("<IiI")
   
-  def __init__(self, hostname):
+  def __init__(self, parent, irc, hostname):
+    self.parent = parent
+    self.irc = irc
     parts = hostname.split(':')
     if len(parts) == 2:
       self.addr = parts[0]
@@ -74,9 +106,68 @@ class Server:
     self.stopPoll()
   def __str__(self):
     return self.addr + ":" + str(self.port)
+  def colorDistance(self, rgb1, rgb2):
+    # From https://stackoverflow.com/a/14097641
+    rm = 0.5*(rgb1[0]+rgb2[0])
+    d = sum((2+rm,4,3-rm)*(rgb1-rgb2)**2)**0.5
+    return d
+  def rgbToIRCColorCode(self, color, channel = None):
+    if self.parent.registryValue('color', channel) == 0:
+      return ''
+    elif self.parent.registryValue('color', channel) == 1: # ircle
+      rank = {}
+      for c in IRCLE_COLORS:
+        rank[self.colorDistance(color, c['color'])] = c
+      closest = sorted(rank.items(), lambda x:x[1])
+      return closest['code']
+    else:
+      return ''
+  def getPlayerText(self, player, channel = None):
+    ret = ''
+    try:
+      itr = iter(player)
+      while True:
+        c = itr.next()
+        if c == '\x1b':
+          # RGB value follows
+          rgb = [itr.next(), itr.next(), itr.next()]
+          ret += self.rgbToIRCColorCode(rgb, channel)
+        else:
+          ret += c
+    except StopIteration:
+      return ret
+  def printJoins(self, joins, channel = None):
+    if self.parent.registryValue('sayJoins', channel):
+      if len(joins) > 0:
+        return ", ".join([self.getPlayerText(x, channel) for x in joins]) + " joined"
+    return ''
+  def printParts(self, joins, channel = None):
+    if self.parent.registryValue('sayParts', channel):
+      if len(joins) > 0:
+        return ", ".join([self.getPlayerText(x, channel) for x in joins]) + " left"
+    return ''
   def poll(self):
     log.info("Polling for " + str(self) + " on channels " + str(self.channels))
-    pass
+    response, players, scores, joined, parted = self.Poll()
+    for channel in self.channels:
+      if len(self.players) == 0 and len(players) > 0 and len(str(self.parent.registryValue('onFirstJoinSay', channel)).strip()) > 0:
+        if self.utdelay == 0:
+          self.irc.queueMsg(ircmsgs.privmsg(channel, self.parent.registryValue('onFirstJoinSay')))
+      msgJoins = self.printJoins(joined, channel)
+      msgParts = self.printParts(parted, channel)
+      
+      msg = msgJoins
+      if len(msgParts) > 0:
+        if len(msg) > 0:
+          msg += ' and '
+        msg += msgParts
+      log.info("Send to " + channel + " with msg: " + msg)
+      
+      self.players = players
+      if len(players) > 0:
+        self.utdelay = 6*30
+      elif self.utdelay > 0:
+        self.utdelay = self.utdelay - 1
   def startPoll(self):
     self.conn = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     schedule.addPeriodicEvent(lambda: self.poll(), self.checkTime, 'utPoll:' + str(self), False)
@@ -193,12 +284,14 @@ class UnrealTournament(callbacks.Plugin):
       #srv = Server(server)
       #if srv.valid:
         #self.servers.append(srv)
+  def __del__(self):
+      log.info("Dieing")
   def doJoin(self, irc, msg):
     channel = msg.args[0]
     log.info(channel + " has servers " + self.registryValue('servers', channel))
     for server in self.registryValue('servers', channel).split():
       if not self.servers.has_key(server):
-        self.servers[server] = Server(server)
+        self.servers[server] = Server(self, irc, server)
       srv = self.servers[server]
       srv.addChannel(channel)
   def doPart(self, irc, msg):

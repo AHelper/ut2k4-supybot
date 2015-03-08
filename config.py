@@ -51,6 +51,9 @@ conf.registerChannelValue(UnrealTournament, 'enabled',
 conf.registerGlobalValue(UnrealTournament, 'logstats', registry.Boolean(False, """Save statistics of player and team scores per-map"""))
 conf.registerChannelValue(UnrealTournament, 'onFirstJoinSay', registry.String('', """When a user joins an empty server, a specific message is sent"""))
 conf.registerChannelValue(UnrealTournament, 'onLastPartSay', registry.String('', """When the last user leaves a server, a specific message is sent"""))
+conf.registerChannelValue(UnrealTournament, 'sayJoins', registry.Boolean(True, """Announces joins of players"""))
+conf.registerChannelValue(UnrealTournament, 'sayParts', registry.Boolean(True, """Announces player parts"""))
+conf.registerChannelValue(UnrealTournament, 'sayEndGame', registry.Boolean(True, """Announces end game scores"""))
 # This is where your configuration variables (if any) should go.  For example:
 # conf.registerGlobalValue(UnrealTournament, 'someConfigVariableName',
 #     registry.Boolean(False, """Help for someConfigVariableName."""))
