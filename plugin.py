@@ -217,9 +217,7 @@ class Server:
 
   def ParseString(self, data):
     length = struct.unpack("<B", data[0])
-    ret = data[1:length[0]]
-    del data[:1+length[0]]
-    return ret
+    return data[1:length[0]], data[1+length[0]:]
 
   def Flush(self):
     t = self.conn.gettimeout()
@@ -243,14 +241,14 @@ class Server:
     log.info(str(self.ServerInfo1.size))
     result = result[self.ServerInfo1.size:]
     log.info(lineno())
-    response['serverName'] = self.ParseString(result)
-    response['mapName'] = self.ParseString(result)
-    response['gameType'] = self.ParseString(result)
+    response['serverName'], result = self.ParseString(result)
+    response['mapName'], result = self.ParseString(result)
+    response['gameType'], result = self.ParseString(result)
     log.info(lineno())
     response['currentPlayers'], response['maxPlayers'], response['ping'], response['serverFlags'] = self.ServerInfo2.unpack_from(result)
     result = result[self.ServerInfo2.size:]
     log.info(lineno())
-    response['skillLevel'] = self.ParseString(result)
+    response['skillLevel'], result = self.ParseString(result)
     log.info(lineno())
     log.info(str(response))
     log.info(lineno())
@@ -264,7 +262,7 @@ class Server:
         t = self.ServerInfo3.unpack_from(result)
         result = result[self.ServerInfo3.size:]
         
-        name = self.ParseString(result)
+        name, result = self.ParseString(result)
         if name != "Red Team" and name != "Blue Team":
           players.append(name)
         
