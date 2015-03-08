@@ -170,6 +170,7 @@ class Server:
           msg += ' and '
         msg += msgParts
       log.info("Send to " + channel + " with msg: " + msg)
+      self.irc.queueMsg(ircmsgs.privmsg(channel, msg))
       
       self.players = players
       if len(players) > 0:
@@ -196,20 +197,13 @@ class Server:
     if len(self.channels) == 0:
       self.stopPoll()
   def Query(self, queryId):
-    log.info("TEST")
-    log.info(lineno())
     if not self.valid:
       log.error("Querying on an invalid server instance!")
     else:
-      log.info(lineno())
-      log.info(str((self.addr, self.port)))
       self.conn = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
       self.conn.sendto(struct.pack("<IB",0x80, queryId), (self.addr, self.port))
-      log.info(lineno())
       recv, addr = self.conn.recvfrom(500000)
-      log.info(lineno())
       if recv[0:5] == struct.pack("<IB",0x80, queryId):
-        log.info("Query response")
         return recv[5:]
       else:
         log.info("Invalid response header")
@@ -230,28 +224,22 @@ class Server:
     self.conn.settimeout(t)
   def Poll(self):
     self.Flush()
-    log.info("Poll")
     result = self.Query(0)
     response = {}
-    log.info(lineno())
+    
     response['serverId'], x, response['gamePort'], response['queryPort'] = self.ServerInfo1.unpack_from(result)
     response['serverIp'] = ''
-    log.info(lineno())
-    log.info(str(len(result)))
-    log.info(str(self.ServerInfo1.size))
     result = result[self.ServerInfo1.size:]
-    log.info(lineno())
+    
     response['serverName'], result = self.ParseString(result)
     response['mapName'], result = self.ParseString(result)
     response['gameType'], result = self.ParseString(result)
-    log.info(lineno())
+    
     response['currentPlayers'], response['maxPlayers'], response['ping'], response['serverFlags'] = self.ServerInfo2.unpack_from(result)
     result = result[self.ServerInfo2.size:]
-    log.info(lineno())
+    
     response['skillLevel'], result = self.ParseString(result)
-    log.info(lineno())
-    log.info(str(response))
-    log.info(lineno())
+    
     players = []
     scores = {}
     joined = []
@@ -274,7 +262,6 @@ class Server:
     for p in players:
       if p not in self.players:
         joined.append(p)
-    log.info(str(scores))
     
     if len(parted) > 0 and self.info.has_key('mapName') and self.info.has_key('gameType') and (self.info['mapName'] != response['mapName'] or self.info['gameType'] != response['gameType']):
       self.partdelay = 3
