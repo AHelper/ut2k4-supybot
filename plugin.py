@@ -123,14 +123,17 @@ class Server:
     return d
   def rgbToIRCColorCode(self, color, channel = None):
     if self.parent.registryValue('color', channel) == 0:
+      log.info("No color")
       return ''
     elif self.parent.registryValue('color', channel) == 1: # ircle
+      log.info("Color")
       rank = {}
       for c in IRCLE_COLORS:
         rank[self.colorDistance(color, c['color'])] = c
       closest = sorted(rank.items(), lambda x:x[1])
       return closest['code']
     else:
+      log.info("No color (bad option)")
       return ''
   def getPlayerText(self, player, channel = None):
     ret = ''
