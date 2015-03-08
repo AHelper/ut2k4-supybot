@@ -130,7 +130,7 @@ class Server:
       rank = {}
       for c in IRCLE_COLORS:
         rank[self.colorDistance(color, c['color'])] = c
-      closest = sorted(rank.items(), lambda x:x[1])
+      closest = sorted(rank.items(), lambda x,y:x[1])
       return closest['code']
     else:
       log.info("No color (bad option)")
