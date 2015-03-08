@@ -149,7 +149,9 @@ class Server:
   def poll(self):
     log.info("Polling for " + str(self) + " on channels " + str(self.channels))
     response, players, scores, joined, parted = self.Poll()
+    log.info(str(response))
     for channel in self.channels:
+      log.info("Checking for " + channel)
       if len(self.players) == 0 and len(players) > 0 and len(str(self.parent.registryValue('onFirstJoinSay', channel)).strip()) > 0:
         if self.utdelay == 0:
           self.irc.queueMsg(ircmsgs.privmsg(channel, self.parent.registryValue('onFirstJoinSay')))
