@@ -44,6 +44,10 @@ import struct
 
 class Server:
   DEFAULT_PORT = 7787
+  ServerInfo1 = struct.Struct("<IBII")
+  ServerInfo2 = struct.Struct("<IIII")
+  ServerInfo3 = struct.Struct("<I")
+  ServerInfo4 = struct.Struct("<IiI")
   
   def __init__(self, hostname):
     parts = hostname.split(':')
@@ -106,7 +110,9 @@ class Server:
 
   def ParseString(self, data):
     length = struct.unpack("<B", data[0])
-    return data[1:length[0]], data[1+length[0]:]
+    ret = data[1:length[0]]
+    del data[:1+length[0]]
+    return ret
 
   def Flush(self):
     t = self.conn.gettimeout()
@@ -122,23 +128,22 @@ class Server:
     log.info("poll")
     result = self.Query(0)
     response = {}
-    t = struct.unpack("<IBII",result[0:4*3+1])
-    response['serverId'] = t[0]
+    
+    (response['serverId'], x, response['gamePort'], response['queryPort']) = self.ServerInfo1.unpack_from(result)
     response['serverIp'] = ''
-    response['gamePort'] = t[2]
-    response['queryPort'] = t[3]
-    result = result[4*3+1:]
-    response['serverName'], result = self.ParseString(result)
-    response['mapName'], result = self.ParseString(result)
-    response['gameType'], result = self.ParseString(result)
-    t = struct.unpack("<IIII",result[:4*4])
-    response['currentPlayers'] = t[0]
-    response['maxPlayers'] = t[1]
-    response['ping'] = t[2]
-    response['serverFlags'] = t[3]
-    result = result[4*4:]
-    response['skillLevel'], result = self.ParseString(result)
+    del result[:self.ServerInfo1.size]
+    
+    response['serverName'] = self.ParseString(result)
+    response['mapName'] = self.ParseString(result)
+    response['gameType'] = self.ParseString(result)
+    
+    (response['currentPlayers'], response['maxPlayers'], response['ping'], response['serverFlags']) = self.ServerInfo2.unpack_from(result)
+    del result[:self.ServerInfo2.size]
+    
+    response['skillLevel'] = self.ParseString(result)
+    
     log.info(str(response))
+    
     players = []
     scores = {}
     joined = []
@@ -146,14 +151,16 @@ class Server:
     if response['currentPlayers'] > 0:
       result = self.Query(2)
       while len(result) != 0:
-        t = struct.unpack("<I", result[0:4])
-        result = result[4:]
-        name, result = self.ParseString(result)
+        t = self.ServerInfo3.unpack_from(result)
+        del result[:self.ServerInfo3.size]
+        
+        name = self.ParseString(result)
         if name != "Red Team" and name != "Blue Team":
           players.append(name)
-        t = struct.unpack("<IiI", result[0:12])
+        
+        (x, scores[name], x) = self.ServerInfo4.unpack_from(result)
         scores[name] = t[1]
-        result = result[12:]
+        del result[:self.ServerInfo4.size]
     for p in self.players:
       if p not in players:
         parted.append(p)
