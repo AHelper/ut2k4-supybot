@@ -288,8 +288,8 @@ class UnrealTournament(callbacks.Plugin):
       log.info("Dieing")
   def doJoin(self, irc, msg):
     channel = msg.args[0]
-    log.info(channel + " has servers " + self.registryValue('servers', channel))
-    for server in str(self.registryValue('servers', channel)).split():
+    log.info(channel + " has servers " + ', '.join(self.registryValue('servers', channel)))
+    for server in self.registryValue('servers', channel):
       if not self.servers.has_key(server):
         self.servers[server] = Server(self, irc, server)
       srv = self.servers[server]
@@ -297,7 +297,7 @@ class UnrealTournament(callbacks.Plugin):
   def doPart(self, irc, msg):
     channel = msg.args[0]
     # Shut down polling
-    for server in str(self.registryValue('servers', channel)).split():
+    for server in self.registryValue('servers', channel):
       if self.servers.has_key(server):
         if self.servers[server].delChannel(channel):
           self.servers[server] = None
