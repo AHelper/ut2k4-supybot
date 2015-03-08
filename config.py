@@ -45,7 +45,7 @@ conf.registerChannelValue(UnrealTournament, 'servers',
                           registry.SpaceSeparatedListOfStrings('', """A space separated list of hostnames with optional
                                                                       ports of UT2004 servers."""))
 conf.registerChannelValue(UnrealTournament, 'color',
-                          registry.Boolean(False, 'Enables colored names'))
+                          registry.Integer(1, 'Enables colored names'))
 conf.registerChannelValue(UnrealTournament, 'enabled',
                           registry.Boolean(True, 'Enables reporting in the channel'))
 conf.registerGlobalValue(UnrealTournament, 'logstats', registry.Boolean(False, """Save statistics of player and team scores per-map"""))
