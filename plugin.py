@@ -170,7 +170,8 @@ class Server:
           msg += ' and '
         msg += msgParts
       log.info("Send to " + channel + " with msg: " + msg)
-      self.irc.queueMsg(ircmsgs.privmsg(channel, msg))
+      if len(msg) > 0:
+        self.irc.queueMsg(ircmsgs.privmsg(channel, msg))
       
       self.players = players
       if len(players) > 0:
