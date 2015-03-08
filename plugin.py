@@ -45,8 +45,8 @@ import struct
 import inspect
 
 def lineno():
-    """Returns the current line number in our program."""
-    return inspect.currentframe().f_back.f_lineno
+  """Returns the current line number in our program."""
+  return str(inspect.currentframe().f_back.f_lineno)
   
 IRCLE_COLORS = [
   {'color':[0xFF, 0xFF, 0xFF],'code':'\x030'},
