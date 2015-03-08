@@ -181,6 +181,7 @@ class Server:
     schedule.addPeriodicEvent(lambda: self.poll(), self.checkTime, 'utPoll:' + str(self), False)
     self.polling = True
   def stopPoll(self):
+    log.info('stopping poll')
     schedule.removePeriodicEvent('utPoll:' + str(self))
     self.polling = False
     self.conn.close()
