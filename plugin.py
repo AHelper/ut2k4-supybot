@@ -64,7 +64,31 @@ class Server:
     self.partdelay = 0
     self.utdelay = 0
     self.checkTime = 10
-
+    self.polling = False
+    self.channels = []
+  def __del__(self):
+    self.stopPoll()
+  def __str__(self):
+    return self.addr + ":" + self.port
+  def poll(self):
+    log.info("Polling for " + str(self) + " on channels " + str(self.channels))
+    pass
+  def startPoll(self):
+    schedule.addPeriodicEvent(lambda: self.poll(), self.checkTime, 'utPoll:' + str(self), False)
+    self.polling = True
+  def stopPoll(self):
+    schedule.removePeriodicEvent('utPoll:' + str(self))
+    self.polling = False
+  def addChannel(self, channelName):
+    if not self.polling:
+      self.startPoll()
+    self.channels.append(channelName)
+  # Returns True if it is unused
+  def delChannel(self, channelName):
+    if channelName in self.channels:
+      self.channels.remove(channelName)
+    if len(self.channels) == 0:
+      self.stopPoll()
 
 class UnrealTournament(callbacks.Plugin):
   """Add the help for "@plugin help UnrealTournament" here
@@ -72,14 +96,26 @@ class UnrealTournament(callbacks.Plugin):
   def __init__(self, irc):
     self.__parent = super(UnrealTournament, self)
     self.__parent.__init__(irc)
-    self.servers = []
-    self.registryValue()
-    for server in conf.supybot.plugins.UnrealTournament.servers:
-      srv = Server(server)
-      if srv.valid:
-        self.servers.append(srv)
+    self.servers = {}
+    #for server in self.registryValue('servers'):
+      #srv = Server(server)
+      #if srv.valid:
+        #self.servers.append(srv)
   def doJoin(self, irc, msg):
-    log.info(msg.args[0] + " has servers " + self.registryValue('servers', msg.args[0]))
+    channel = msg.args[0]
+    log.info(channel + " has servers " + self.registryValue('servers', channel))
+    for server in self.registryValue('servers', channel).split():
+      if not self.servers.has_key(server):
+        self.servers[server] = Server(server)
+      srv = self.servers[server]
+      srv.addChannel(channel)
+  def doPart(self, irc, msg):
+    channel = msg.args[0]
+    # Shut down polling
+    for server in self.registryValue('servers', channel).split():
+      if self.servers.has_key(server):
+        if self.servers[server].delChannel(channel):
+          self.servers[server] = None
   #def Query(self, k, v=""):
     #data = {}
     #id = "0"
