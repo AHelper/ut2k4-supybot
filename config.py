@@ -1,5 +1,5 @@
 ###
-# Copyright (c) 2014, Collin Eggert
+# Copyright (c) 2014, 2015 Collin Eggert
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -41,6 +41,16 @@ def configure(advanced):
 
 
 UnrealTournament = conf.registerPlugin('UnrealTournament')
+conf.registerChannelValue(UnrealTournament, 'servers',
+                          registry.SpaceSeparatedListOfStrings('', """A space separated list of hostnames with optional
+                                                                      ports of UT2004 servers."""))
+conf.registerChannelValue(UnrealTournament, 'color',
+                          registry.Boolean(False, 'Enables colored names'))
+conf.registerChannelValue(UnrealTournament, 'enabled',
+                          registry.Boolean(True, 'Enables reporting in the channel'))
+conf.registerGlobalValue(UnrealTournament, 'logstats', registry.Boolean(False, """Save statistics of player and team scores per-map"""))
+conf.registerChannelValue(UnrealTournament, 'onFirstJoinSay', registry.String('', """When a user joins an empty server, a specific message is sent"""))
+conf.registerChannelValue(UnrealTournament, 'onLastPartSay', registry.String('', """When the last user leaves a server, a specific message is sent"""))
 # This is where your configuration variables (if any) should go.  For example:
 # conf.registerGlobalValue(UnrealTournament, 'someConfigVariableName',
 #     registry.Boolean(False, """Help for someConfigVariableName."""))

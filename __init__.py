@@ -1,5 +1,5 @@
 ###
-# Copyright (c) 2014, Collin Eggert
+# Copyright (c) 2014, 2015 Collin Eggert
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -29,7 +29,7 @@
 ###
 
 """
-Monitors a UT2k4 server to alert users about games
+Monitors UT2k4 servers and reports joins
 """
 
 import supybot
@@ -37,10 +37,8 @@ import supybot.world as world
 
 # Use this for the version of this plugin.  You may wish to put a CVS keyword
 # in here if you're keeping the plugin in CVS or some similar system.
-__version__ = "0.2"
-
-# XXX Replace this with an appropriate author or supybot.Author instance.
-__author__ = supybot.Author("Collin Eggert", 'AHelper', 'admin@ahelper.blizzie.net')
+__version__ = "0.3"
+__author__ = supybot.Author("Collin Eggert", 'AHelper', 'ahelper2@gmail.com')
 
 # This is a dictionary mapping supybot.Author instances to lists of
 # contributions.
