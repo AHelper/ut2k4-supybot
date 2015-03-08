@@ -120,7 +120,7 @@ class Server:
     # From https://stackoverflow.com/a/14097641
     rm = 0.5*(rgb1[0]+rgb2[0])
     d = sum((2+rm,4,3-rm)*(rgb1-rgb2)**2)**0.5
-    return d
+    return d.item()
   def rgbToIRCColorCode(self, color, channel = None):
     if self.parent.registryValue('color', channel) == 0:
       log.info("No color")
