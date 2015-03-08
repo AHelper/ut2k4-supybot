@@ -41,7 +41,8 @@ import socket
 import sys
 import random
 import struct
-
+import StringIO
+import traceback
 import inspect
 
 def lineno():
@@ -153,31 +154,36 @@ class Server:
         return ", ".join([self.getPlayerText(x, channel) for x in joins]) + " left"
     return ''
   def poll(self):
-    log.info("Polling for " + str(self) + " on channels " + str(self.channels))
-    response, players, scores, joined, parted = self.Poll()
-    log.info(str(response))
-    for channel in self.channels:
-      log.info("Checking for " + channel)
-      if len(self.players) == 0 and len(players) > 0 and len(str(self.parent.registryValue('onFirstJoinSay', channel)).strip()) > 0:
-        if self.utdelay == 0:
-          self.irc.queueMsg(ircmsgs.privmsg(channel, self.parent.registryValue('onFirstJoinSay')))
-      msgJoins = self.printJoins(joined, channel)
-      msgParts = self.printParts(parted, channel)
-      
-      msg = msgJoins
-      if len(msgParts) > 0:
+    try:
+      log.info("Polling for " + str(self) + " on channels " + str(self.channels))
+      response, players, scores, joined, parted = self.Poll()
+      log.info(str(response))
+      for channel in self.channels:
+        log.info("Checking for " + channel)
+        if len(self.players) == 0 and len(players) > 0 and len(str(self.parent.registryValue('onFirstJoinSay', channel)).strip()) > 0:
+          if self.utdelay == 0:
+            self.irc.queueMsg(ircmsgs.privmsg(channel, self.parent.registryValue('onFirstJoinSay')))
+        msgJoins = self.printJoins(joined, channel)
+        msgParts = self.printParts(parted, channel)
+        
+        msg = msgJoins
+        if len(msgParts) > 0:
+          if len(msg) > 0:
+            msg += ' and '
+          msg += msgParts
+        log.info("Send to " + channel + " with msg: " + msg)
         if len(msg) > 0:
-          msg += ' and '
-        msg += msgParts
-      log.info("Send to " + channel + " with msg: " + msg)
-      if len(msg) > 0:
-        self.irc.queueMsg(ircmsgs.privmsg(channel, msg))
-      
-      self.players = players
-      if len(players) > 0:
-        self.utdelay = 6*30
-      elif self.utdelay > 0:
-        self.utdelay = self.utdelay - 1
+          self.irc.queueMsg(ircmsgs.privmsg(channel, msg))
+        
+        self.players = players
+        if len(players) > 0:
+          self.utdelay = 6*30
+        elif self.utdelay > 0:
+          self.utdelay = self.utdelay - 1
+    except:
+     out = StringIO.StringIO()
+     traceback.print_exc(file=out)
+     log.error(out.getvalue())
   def startPoll(self):
     self.conn = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     schedule.addPeriodicEvent(lambda: self.poll(), self.checkTime, 'utPoll:' + str(self), False)
