@@ -42,6 +42,12 @@ import sys
 import random
 import struct
 
+import inspect
+
+def lineno():
+    """Returns the current line number in our program."""
+    return inspect.currentframe().f_back.f_lineno
+  
 IRCLE_COLORS = [
   {'color':[0xFF, 0xFF, 0xFF],'code':'\x030'},
   {'color':[0x00, 0x00, 0x00],'code':'\x031'},
@@ -193,7 +199,9 @@ class Server:
       log.error("Querying on an invalid server instance!")
     else:
       self.conn.sendto(struct.pack("<IB",0x80, queryId), (self.addr, self.port))
+      log.info(lineno())
       recv, addr = self.conn.recvfrom(500000)
+      log.info(lineno())
       if recv[0:5] == struct.pack("<IB",0x80, queryId):
         log.info("Query response")
         return recv[5:]
@@ -221,22 +229,22 @@ class Server:
     log.info("poll")
     result = self.Query(0)
     response = {}
-    
+    log.info(lineno())
     (response['serverId'], x, response['gamePort'], response['queryPort']) = self.ServerInfo1.unpack_from(result)
     response['serverIp'] = ''
     del result[:self.ServerInfo1.size]
-    
+    log.info(lineno())
     response['serverName'] = self.ParseString(result)
     response['mapName'] = self.ParseString(result)
     response['gameType'] = self.ParseString(result)
-    
+    log.info(lineno())
     (response['currentPlayers'], response['maxPlayers'], response['ping'], response['serverFlags']) = self.ServerInfo2.unpack_from(result)
     del result[:self.ServerInfo2.size]
-    
+    log.info(lineno())
     response['skillLevel'] = self.ParseString(result)
-    
+    log.info(lineno())
     log.info(str(response))
-    
+    log.info(lineno())
     players = []
     scores = {}
     joined = []
