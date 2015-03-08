@@ -239,8 +239,8 @@ class Server:
     response['serverId'], x, response['gamePort'], response['queryPort'] = self.ServerInfo1.unpack_from(result)
     response['serverIp'] = ''
     log.info(lineno())
-    log.info(len(result))
-    log.info(self.ServerInfo1.size)
+    log.info(str(len(result)))
+    log.info(str(self.ServerInfo1.size))
     del result[:self.ServerInfo1.size]
     log.info(lineno())
     response['serverName'] = self.ParseString(result)
